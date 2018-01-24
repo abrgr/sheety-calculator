@@ -1,0 +1,25 @@
+{
+  "name": "sheety-calculator",
+  "version": "1.0.0",
+  "description": "Sheety Calculator is part of the SheetyApp suite.  Sheety Calculator is essentially a spreadhseet calculation engine that runs off of the spreadsheet model built by Sheety Modeler.",
+  "main": "build/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "babel src --out-dir dist --source-maps"
+  },
+  "author": "Adam Berger",
+  "license": "UNLICENSED",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "dependencies": {
+    "hot-formula-parser": "^2.3.1",
+    "immutable": "^3.8.2",
+    "toposort": "^1.0.6"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-preset-env": "^1.6.1"
+  }
+}

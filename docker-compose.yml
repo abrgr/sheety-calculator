@@ -1,0 +1,14 @@
+version: '2'
+services:
+  sheety-calculator:
+    build:
+      context: .
+    image: node:8.9.4-alpine
+    working_dir: "/app"
+    environment:
+     - "YARN_CACHE_FOLDER=/yarn-cache"
+    volumes:
+     - ".:/app"
+     - "./.yarn-cache:/yarn-cache"
+    command: "npm run build"
+    network_mode: "bridge"
