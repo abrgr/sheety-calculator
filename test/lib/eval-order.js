@@ -17,7 +17,11 @@ describe('EvalOrder', () => {
       new CellRef({ tabId: '1', rowIdx: 3, colIdx: 3}),
       new CellRef({ tabId: '2', rowIdx: 1, colIdx: 1})
     );
-    const inputs = nonDeps.concat(dependencyCells);
+    const inputs = tabs.flatMap(t =>
+      t.get('rows').flatMap((r, rowIdx) => 
+        r.map((_, colIdx) => CellRef.of(t, rowIdx, colIdx))
+      )
+    );
 
     const order = evalOrder(theDeps, inputs.toSet());
 
