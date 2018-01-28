@@ -5,6 +5,7 @@ import evalOrder from './eval-order';
 import partialEvalOrder from './partial-eval-order';
 import deps from './deps';
 import depsToProvides from './deps-to-provides';
+import * as funcs from './sheet-funcs';
 
 export default class Calculator {
   constructor(tabs) {
@@ -81,6 +82,7 @@ export default class Calculator {
       const formulaValue = this.parser.parse(formula);
       if ( formulaValue.error ) {
         // TODO
+        return formulaValue.error;
       }
 
       return formulaValue.result;
@@ -136,10 +138,48 @@ export default class Calculator {
       done(this._calculateCellValue(cellRef));
     });
 
-    parser.on('callRangeValue', (startCellCoord, endCellCoord, done) => {
-      // TODO
+    parser.on('callRangeValue', (startCellCoord, endCellCoord, tabId, done) => {
+      const tab = this.tabsById.get(tabId);
+      const startCellRef = CellRef.of(
+        tab,
+        startCellCoord.row.index,
+        startCellCoord.column.index
+      );
+      const endCellRef = CellRef.of(
+        tab,
+        endCellCoord.row.index,
+        endCellCoord.column.index
+      );
+
+      const range = eachCell(startCellRef, endCellRef, this._calculateCellValue.bind(this));
+      done(range);
+    });
+
+    parser.on('callFunction', (name, params, done) => {
+      const func = funcs[name.toUpperCase()];
+      if ( !func ) {
+
+      }
+
+      done(func.apply(null, params));
     });
 
     return parser;
   }
+}
+
+function eachCell(start, end, fn) {
+  const tab = start.get('tabId');
+  const rows = end.get('rowIdx') - start.get('rowIdx');
+  const cols = end.get('colIdx') - start.get('colIdx');
+
+  const vals = [];
+  for ( let r = 0; r <= rows; ++r ) {
+    vals.push([]);
+    for ( let c = 0; c <= cols; ++c ) {
+      vals[r][c] = fn(start.merge({rowIdx: r, colIdx: c}));
+    }
+  }
+
+  return vals;
 }

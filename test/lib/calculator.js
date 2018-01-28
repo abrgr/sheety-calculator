@@ -27,6 +27,31 @@ describe('Calculator', () => {
       assert.equal(vals.getIn(['tab0', 3, 3]), 25);
     });
   });
+
+  describe('vlookup', () => {
+    it('should work', () => {
+      const tabs = List.of(
+        new Tab({
+          id: 'my-tab',
+          rows: List.of(
+            List.of(new Cell({ staticValue: "a" }), new Cell({ staticValue: 2 })),
+            List.of(new Cell({ staticValue: "b" }), new Cell({ staticValue: 3 })),
+            List.of(new Cell({ staticValue: "c" }), new Cell({ staticValue: 4 })),
+            List.of(new Cell({ staticValue: "d" }), new Cell({ staticValue: 5 })),
+            List.of(new Cell({ staticValue: "e" }), new Cell({ staticValue: 6 })),
+          )
+        }), new Tab ({
+          id: 'tab-2',
+          rows: List.of(
+            List.of(new Cell({ formula: "VLOOKUP('c', 'my-tab'!A1:B5, 2, FALSE)" }))
+          )
+        })
+      );
+
+      const calc = new Calculator(tabs);
+      assert.equal(calc.vals.getIn(['tab-2', 0, 0]), 4);
+    });
+  });
 });
 
 function tabFactory(t, rows, cols) {
