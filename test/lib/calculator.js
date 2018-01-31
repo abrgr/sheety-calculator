@@ -1,13 +1,13 @@
 import assert from 'assert';
 import Calculator from '../../dist/lib/calculator';
 import { Map, List, Range, is } from 'immutable';
-import { Tab, Cell, CellRef } from 'sheety-model';
+import { Sheet, Tab, Cell, CellRef } from 'sheety-model';
 
 describe('Calculator', () => {
   describe('calculateAll', () => {
     it('should work', () => {
       const tabs = Range(0, 3).map((t) => tabFactory(`tab${t}`, 4, 4)).toList();
-      const calc = new Calculator(tabs);
+      const calc = new Calculator(new Sheet({ tabs }));
       assert.equal(calc.vals.getIn(['tab0', 0, 0]), 10);
       assert.equal(calc.vals.getIn(['tab0', 1, 0]), 20);
     });
@@ -16,7 +16,7 @@ describe('Calculator', () => {
   describe('setValues', () => {
     it('should work', () => {
       const tabs = Range(0, 3).map((t) => editableTabFactory(`tab${t}`, 4, 4)).toList();
-      const calc = new Calculator(tabs);
+      const calc = new Calculator(new Sheet({ tabs }));
       const vals = calc.setValues(new Map([
         [CellRef.of(tabs.get(0), 0, 0), 15],
         [CellRef.of(tabs.get(0), 1, 1), 10]]
@@ -48,7 +48,7 @@ describe('Calculator', () => {
         })
       );
 
-      const calc = new Calculator(tabs);
+      const calc = new Calculator(new Sheet({ tabs }));
       assert.equal(calc.vals.getIn(['tab-2', 0, 0]), 4);
     });
   });

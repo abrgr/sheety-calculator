@@ -8,10 +8,11 @@ import depsToProvides from './deps-to-provides';
 import * as funcs from './sheet-funcs';
 
 export default class Calculator {
-  constructor(tabs) {
+  constructor(sheet) {
+    this.sheet = sheet;
     this.parser = this._makeParser();
-    // Map from tab id to sheety-model Tab
-    this.tabsById = new Map(tabs.map(t => [t.get('id'), t]));
+
+    const tabs = sheet.tabsById.valueSeq();
     // Map from dependent to dependency cells
     this.deps = deps(tabs);
     // Map from CellRef p to List of CellRefs r where p provides a value needed by each r.
@@ -33,7 +34,7 @@ export default class Calculator {
 
   setValues(valuesByCellRef) {
     valuesByCellRef.forEach((value, cellRef) => {
-      const cell = this._getCell(cellRef);
+      const cell = this.sheet.getCell(cellRef);
       if ( !cell.get('isUserEditable') ) {
         // TODO
       }
@@ -56,26 +57,14 @@ export default class Calculator {
    * Return all cell references for all tabs.
    **/
   _allCellRefs() {
-    return this.tabsById.valueSeq().flatMap(tab => (
-      tab.rows.flatMap((row, rowIdx) => (
-        row.map((cell, colIdx) => CellRef.of(tab, rowIdx, colIdx))
-      ))
-    )).toSet();
-  }
-
-  /**
-   * Returns the sheety-model Cell for the given cell ref.
-   **/
-  _getCell(cellRef) {
-    const tab = this.tabsById.get(cellRef.get('tabId'));
-    return tab && tab.getCellByRef(cellRef);
+    return this.sheet.allCellRefs().toSet();
   }
 
   /**
    * Calculates the value of the cell at the given ref.
    **/
   _calculateCellValue(cellRef) {
-    const cell = this._getCell(cellRef);
+    const cell = this.sheet.getCell(cellRef);
 
     const formula = cell.get('formula');
     if ( formula ) {
@@ -134,12 +123,12 @@ export default class Calculator {
     const parser = new Parser();
 
     parser.on('callCellValue', ({row, column, tab}, done) => {
-      const cellRef = CellRef.of(this.tabsById.get(tab), row.index, column.index);
+      const cellRef = CellRef.of(this.sheet.getTab(tab), row.index, column.index);
       done(this._calculateCellValue(cellRef));
     });
 
     parser.on('callRangeValue', (startCellCoord, endCellCoord, tabId, done) => {
-      const tab = this.tabsById.get(tabId);
+      const tab = this.sheet.getTab(tabId);
       const startCellRef = CellRef.of(
         tab,
         startCellCoord.row.index,
