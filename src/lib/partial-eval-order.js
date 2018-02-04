@@ -1,13 +1,17 @@
-import { Stack, List } from 'immutable';
+import { Stack, List, Set } from 'immutable';
 
 export default function partialEvalOrder(providesTo, inputs) {
-  let order = inputs;
+  let order = new List(inputs);
   let next = new Stack(inputs);
+  let inOrder = new Set(inputs);
   while ( !next.isEmpty() ) {
     const node = next.peek();
     next = next.shift();
-    next = next.unshiftAll(providesTo.get(node) || new List());
-    order = order.concat(next);
+    const toAdd = providesTo.get(node, new List())
+                            .filterNot(inOrder.has.bind(inOrder));
+    inOrder = inOrder.union(toAdd);
+    next = next.unshiftAll(toAdd);
+    order = order.concat(toAdd);
   }
   return order;
 }

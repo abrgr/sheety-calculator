@@ -38,7 +38,7 @@ describe('Calculator', () => {
             List.of(new Cell({ staticValue: "b" }), new Cell({ staticValue: 3 })),
             List.of(new Cell({ staticValue: "c" }), new Cell({ staticValue: 4 })),
             List.of(new Cell({ staticValue: "d" }), new Cell({ staticValue: 5 })),
-            List.of(new Cell({ staticValue: "e" }), new Cell({ staticValue: 6 })),
+            List.of(new Cell({ staticValue: "e" }), new Cell({ staticValue: 6 }))
           )
         }), new Tab ({
           id: 'tab-2',
@@ -60,7 +60,6 @@ function tabFactory(t, rows, cols) {
     rows: Range(0, rows).map((r) => (
       Range(0, cols).map((c) => (
         new Cell({
-          ref: new CellRef({ tabId: t, rowIdx: r, colIdx: c }),
           formula: (r === 0 && c === 0) || (r === 1 && c === 1)
                  ? null
                  : `${t}!A1+${t}!B2`,
@@ -79,7 +78,6 @@ function editableTabFactory(t, rows, cols) {
     rows: Range(0, rows).map((r) => (
       Range(0, cols).map((c) => (
         new Cell({
-          ref: new CellRef({ tabId: t, rowIdx: r, colIdx: c }),
           formula: (r === 0 && c === 0) || (r === 1 && c === 1)
                  ? null
                  : `${t}!A1+${t}!B2`,

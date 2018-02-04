@@ -1,6 +1,6 @@
 import { Map, List } from 'immutable';
 import { Parser } from 'hot-formula-parser';
-import { CellRef } from 'sheety-model';
+import { CellRef, CellRefRange } from 'sheety-model';
 import evalOrder from './eval-order';
 import partialEvalOrder from './partial-eval-order';
 import deps from './deps';
@@ -42,7 +42,28 @@ export default class Calculator {
       this._setCellValue(cellRef, value);
     });
 
-    return this._processCalculations(partialEvalOrder(this.providesTo, valuesByCellRef.keySeq()));
+    const toEval = partialEvalOrder(
+      this.providesTo,
+      valuesByCellRef.keySeq()
+    ).skipWhile(r => valuesByCellRef.has(r)).toList()
+
+    return this._processCalculations(toEval);
+  }
+
+  /**
+   * Evaluate the formula provided, using defaultTabId as the tab for any
+   * cell references without a tab.
+   **/
+  evaluateFormula(formula, defaultTabId) {
+    return withDefaultTabId(defaultTabId, this.parser, () => {
+      const formulaValue = this.parser.parse(formula);
+      if ( formulaValue.error ) {
+        // TODO
+        return formulaValue.error;
+      }
+
+      return formulaValue.result;
+    });
   }
 
   _processCalculations(order) {
@@ -68,13 +89,7 @@ export default class Calculator {
 
     const formula = cell.get('formula');
     if ( formula ) {
-      const formulaValue = this.parser.parse(formula);
-      if ( formulaValue.error ) {
-        // TODO
-        return formulaValue.error;
-      }
-
-      return formulaValue.result;
+      return this.evaluateFormula(formula, cellRef.get('tabId'));
     }
 
     const staticValue = cell.get('staticValue');
@@ -123,31 +138,31 @@ export default class Calculator {
     const parser = new Parser();
 
     parser.on('callCellValue', ({row, column, tab}, done) => {
-      const cellRef = CellRef.of(this.sheet.getTab(tab), row.index, column.index);
-      done(this._calculateCellValue(cellRef));
+      const tabId = tab || parser.defaultTabId;
+      const cellRef = CellRef.of(this.sheet.getTab(tabId), row.index, column.index);
+      done(this._getCellValue(cellRef));
     });
 
-    parser.on('callRangeValue', (startCellCoord, endCellCoord, tabId, done) => {
+    parser.on('callRangeValue', (startCellCoord, endCellCoord, explicitTabId, done) => {
+      const tabId = explicitTabId || parser.defaultTabId;
       const tab = this.sheet.getTab(tabId);
-      const startCellRef = CellRef.of(
-        tab,
-        startCellCoord.row.index,
-        startCellCoord.column.index
+      const range = this.sheet.mapRange(
+        CellRefRange.of(
+          tab,
+          startCellCoord.row.index,
+          startCellCoord.column.index,
+          endCellCoord.row.index,
+          endCellCoord.column.index
+        ),
+        this._getCellValue.bind(this)
       );
-      const endCellRef = CellRef.of(
-        tab,
-        endCellCoord.row.index,
-        endCellCoord.column.index
-      );
-
-      const range = eachCell(startCellRef, endCellRef, this._calculateCellValue.bind(this));
       done(range);
     });
 
     parser.on('callFunction', (name, params, done) => {
       const func = funcs[name.toUpperCase()];
       if ( !func ) {
-
+        // TODO
       }
 
       done(func.apply(null, params));
@@ -157,18 +172,9 @@ export default class Calculator {
   }
 }
 
-function eachCell(start, end, fn) {
-  const tab = start.get('tabId');
-  const rows = end.get('rowIdx') - start.get('rowIdx');
-  const cols = end.get('colIdx') - start.get('colIdx');
-
-  const vals = [];
-  for ( let r = 0; r <= rows; ++r ) {
-    vals.push([]);
-    for ( let c = 0; c <= cols; ++c ) {
-      vals[r][c] = fn(start.merge({rowIdx: r, colIdx: c}));
-    }
-  }
-
-  return vals;
+function withDefaultTabId(defaultTabId, parser, fn) {
+  parser.defaultTabId = defaultTabId;
+  const result = fn();
+  parser.defaultTabId = null;
+  return result;
 }

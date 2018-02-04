@@ -1,3 +1,3 @@
-import A from "lib/a"
+import Calculator from "./lib/calculator"
 
-A();
+export default Calculator;
