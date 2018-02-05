@@ -174,7 +174,7 @@ var Calculator = function () {
       if (!this.vals.has(tabId)) {
         this.vals = this.vals.set(tabId, new _immutable.List());
       }
-      if (!this.vals.hasIn([tabId, rowIdx])) {
+      if (!this.vals.getIn([tabId, rowIdx])) {
         this.vals = this.vals.setIn([tabId, rowIdx], new _immutable.List());
       }
       this.vals = this.vals.setIn([cellRef.get('tabId'), cellRef.get('rowIdx'), cellRef.get('colIdx')], value);
@@ -218,13 +218,8 @@ var Calculator = function () {
         done(range);
       });
 
-      parser.on('callFunction', function (name, params, done) {
-        var func = funcs[name.toUpperCase()];
-        if (!func) {
-          // TODO
-        }
-
-        done(func.apply(null, params));
+      Object.keys(funcs).forEach(function (name) {
+        parser.setFunction(name, funcs[name]);
       });
 
       return parser;

@@ -116,7 +116,7 @@ export default class Calculator {
     if ( !this.vals.has(tabId) ) {
       this.vals = this.vals.set(tabId, new List());
     }
-    if ( !this.vals.hasIn([tabId, rowIdx]) ) {
+    if ( !this.vals.getIn([tabId, rowIdx]) ) {
       this.vals = this.vals.setIn([tabId, rowIdx], new List());
     }
     this.vals = this.vals.setIn([cellRef.get('tabId'), cellRef.get('rowIdx'), cellRef.get('colIdx')], value);
@@ -159,13 +159,8 @@ export default class Calculator {
       done(range);
     });
 
-    parser.on('callFunction', (name, params, done) => {
-      const func = funcs[name.toUpperCase()];
-      if ( !func ) {
-        // TODO
-      }
-
-      done(func.apply(null, params));
+    Object.keys(funcs).forEach(name => {
+      parser.setFunction(name, funcs[name]);
     });
 
     return parser;

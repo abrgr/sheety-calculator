@@ -1,7 +1,7 @@
 import { ERROR_NOT_AVAILABLE } from 'hot-formula-parser';
 
 // For reference: https://github.com/FormulaPages/vlookup
-export function VLOOKUP(needle, table, index, exactmatch) {             
+export function VLOOKUP([needle, table, index, exactmatch]) {
   if ( needle instanceof Error || needle === null ) {
     return needle;
   }
