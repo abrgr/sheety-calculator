@@ -24,3 +24,8 @@ export function VLOOKUP([needle, table, index, exactmatch]) {
 
   return new Error(ERROR_NOT_AVAILABLE);
 }
+
+export function HYPERLINK([link, value]) {
+  // we ignore links
+  return value;
+}
