@@ -66,6 +66,16 @@ export default class Calculator {
     });
   }
 
+  getRange(rangeRef) {
+    return this.sheet.mapRange(
+      rangeRef,
+      this._getCellValue.bind(this)
+    );
+  }
+
+  /**
+   * Evaluate each cell in order.
+   **/
   _processCalculations(order) {
     order.forEach((cellRef) => {
       this._setCellValue(cellRef, this._calculateCellValue(cellRef));
@@ -146,16 +156,14 @@ export default class Calculator {
     parser.on('callRangeValue', (startCellCoord, endCellCoord, explicitTabId, done) => {
       const tabId = explicitTabId || parser.defaultTabId;
       const tab = this.sheet.getTab(tabId);
-      const range = this.sheet.mapRange(
-        CellRefRange.of(
-          tab,
-          startCellCoord.row.index,
-          startCellCoord.column.index,
-          endCellCoord.row.index,
-          endCellCoord.column.index
-        ),
-        this._getCellValue.bind(this)
+      const rangeRef = CellRefRange.of(
+        tab,
+        startCellCoord.row.index,
+        startCellCoord.column.index,
+        endCellCoord.row.index,
+        endCellCoord.column.index
       );
+      const range = this.getRange(rangeRef);
       done(range);
     });
 

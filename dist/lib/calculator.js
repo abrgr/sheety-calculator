@@ -112,6 +112,16 @@ var Calculator = function () {
       });
     }
   }, {
+    key: 'getRange',
+    value: function getRange(rangeRef) {
+      return this.sheet.mapRange(rangeRef, this._getCellValue.bind(this));
+    }
+
+    /**
+     * Evaluate each cell in order.
+     **/
+
+  }, {
     key: '_processCalculations',
     value: function _processCalculations(order) {
       var _this3 = this;
@@ -214,7 +224,8 @@ var Calculator = function () {
       parser.on('callRangeValue', function (startCellCoord, endCellCoord, explicitTabId, done) {
         var tabId = explicitTabId || parser.defaultTabId;
         var tab = _this4.sheet.getTab(tabId);
-        var range = _this4.sheet.mapRange(_sheetyModel.CellRefRange.of(tab, startCellCoord.row.index, startCellCoord.column.index, endCellCoord.row.index, endCellCoord.column.index), _this4._getCellValue.bind(_this4));
+        var rangeRef = _sheetyModel.CellRefRange.of(tab, startCellCoord.row.index, startCellCoord.column.index, endCellCoord.row.index, endCellCoord.column.index);
+        var range = _this4.getRange(rangeRef);
         done(range);
       });
 
