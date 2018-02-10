@@ -1556,16 +1556,9 @@ set-immediate-shim@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/set-immediate-shim/-/set-immediate-shim-1.0.1.tgz#4b2b1b27eb808a9f8dcc481a58e5e56f599f3f61"
 
-"sheety-model@https://github.com/abrgr/sheety-model.git":
+"sheety-model@https://github.com/abrgr/sheety-model.git#058e6f9ddab902b93b28ba835eba55363fd5555f":
   version "1.0.0"
-  resolved "https://github.com/abrgr/sheety-model.git#1103d82942273e146bf1ef2d019ee6cf81254ce9"
-  dependencies:
-    hot-formula-parser "https://github.com/abrgr/formula-parser.git#68eae50d58306de2c9d92b75533d704b3e23519a"
-    immutable "^3.8.2"
-
-"sheety-model@https://github.com/abrgr/sheety-model.git#699b18b3303c3f7619e4eb663203bbd9a0e0cc95":
-  version "1.0.0"
-  resolved "https://github.com/abrgr/sheety-model.git#699b18b3303c3f7619e4eb663203bbd9a0e0cc95"
+  resolved "https://github.com/abrgr/sheety-model.git#058e6f9ddab902b93b28ba835eba55363fd5555f"
   dependencies:
     hot-formula-parser "https://github.com/abrgr/formula-parser.git#68eae50d58306de2c9d92b75533d704b3e23519a"
     immutable "^3.8.2"

@@ -18,7 +18,7 @@
   "dependencies": {
     "hot-formula-parser": "https://github.com/abrgr/formula-parser.git#68eae50d58306de2c9d92b75533d704b3e23519a",
     "immutable": "^3.8.2",
-    "sheety-model": "https://github.com/abrgr/sheety-model.git#699b18b3303c3f7619e4eb663203bbd9a0e0cc95",
+    "sheety-model": "https://github.com/abrgr/sheety-model.git#058e6f9ddab902b93b28ba835eba55363fd5555f",
     "toposort": "^1.0.6"
   },
   "devDependencies": {

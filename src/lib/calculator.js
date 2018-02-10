@@ -93,9 +93,9 @@ export default class Calculator {
   getFormattedCell(cellRef) {
     const val = this._getCellValue(cellRef);
     const cell = this.sheet.getCell(cellRef);
-    const format = cell.get('format');
+    const format = cell && cell.get('format');
 
-    return format.format(val);
+    return format ? format.format(val) : val;
   }
 
   /**

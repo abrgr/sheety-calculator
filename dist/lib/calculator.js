@@ -142,9 +142,9 @@ var Calculator = function () {
     value: function getFormattedCell(cellRef) {
       var val = this._getCellValue(cellRef);
       var cell = this.sheet.getCell(cellRef);
-      var format = cell.get('format');
+      var format = cell && cell.get('format');
 
-      return format.format(val);
+      return format ? format.format(val) : val;
     }
 
     /**

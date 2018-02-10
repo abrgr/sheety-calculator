@@ -22,7 +22,7 @@ function deps(tabs) {
   return tabs.reduce(function (deps, tab) {
     return tab.get('rows').reduce(function (deps, row, rowIdx) {
       return row.reduce(function (deps, cell, colIdx) {
-        return cell.get('formula') ? deps.set(_sheetyModel.CellRef.of(tab, rowIdx, colIdx), parser.parse(tab, cell.get('formula'))) : deps;
+        return cell.get('formula') ? deps.set(_sheetyModel.CellRef.of(tab, rowIdx, colIdx), parser.parse(tab.get('id'), cell.get('formula'))) : deps;
       }, deps);
     }, deps);
   }, new _immutable.Map());
@@ -33,11 +33,35 @@ function getDependencyParser() {
   var dependentCells = new _immutable.List();
   var tab = null;
   parser.on('callCellValue', function (cellCoord, done) {
-    dependentCells = dependentCells.push(_sheetyModel.CellRef.of(tab, cellCoord.row.index, cellCoord.column.index));
+    dependentCells = dependentCells.push(new _sheetyModel.CellRef({
+      tabId: cellCoord.tab || tab,
+      rowIdx: cellCoord.row.index,
+      colIdx: cellCoord.column.index
+    }));
     done(0); // we don't care about the value
   });
   parser.on('callRangeValue', function (startCellCoord, endCellCoord, done) {
-    // TODO: implement this
+    var range = new _sheetyModel.CellRefRange({
+      start: {
+        tabId: startCellCoord.tab || tab,
+        rowIdx: startCellCoord.row.index,
+        colIdx: startCellCoord.column.index
+      },
+      end: {
+        tabId: startCellCoord.tab || tab,
+        rowIdx: endCellCoord.row.index,
+        colIdx: endCellCoord.column.index
+      }
+    });
+    var dependentRows = range.map(function (cellRef) {
+      return cellRef.set('tabId', cellRef.get('tabId') || tab);
+    });
+
+    dependentCells = dependentRows.reduce(function (_, row) {
+      return dependentCells.concat(new _immutable.List(row));
+    }, dependentCells);
+
+    return [[]];
   });
 
   var origParse = parser.parse;
