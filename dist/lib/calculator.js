@@ -111,10 +111,40 @@ var Calculator = function () {
         return formulaValue.result;
       });
     }
+
+    /** Given an A1 range, rangeRef, return the values of the corresponding cells
+     *  in an NxM matrix (2-d array).
+     **/
+
   }, {
     key: 'getRange',
     value: function getRange(rangeRef) {
       return this.sheet.mapRange(rangeRef, this._getCellValue.bind(this));
+    }
+
+    /**
+     * Given an A1 range, rangeRef, return the formatted values of the corresponding cells
+     * in an NxM matrix (2-d array).
+     **/
+
+  }, {
+    key: 'getFormattedRange',
+    value: function getFormattedRange(rangeRef) {
+      return this.sheet.mapRange(rangeRef, this.getFormattedCell.bind(this));
+    }
+
+    /**
+     * Given an A1 reference, return the formatted value of the corresponding cell.
+     **/
+
+  }, {
+    key: 'getFormattedCell',
+    value: function getFormattedCell(cellRef) {
+      var val = this._getCellValue(cellRef);
+      var cell = this.sheet.getCell(cellRef);
+      var format = cell.get('format');
+
+      return format.format(val);
     }
 
     /**

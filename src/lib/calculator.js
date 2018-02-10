@@ -66,11 +66,36 @@ export default class Calculator {
     });
   }
 
+  /** Given an A1 range, rangeRef, return the values of the corresponding cells
+   *  in an NxM matrix (2-d array).
+   **/
   getRange(rangeRef) {
     return this.sheet.mapRange(
       rangeRef,
       this._getCellValue.bind(this)
     );
+  }
+
+  /**
+   * Given an A1 range, rangeRef, return the formatted values of the corresponding cells
+   * in an NxM matrix (2-d array).
+   **/
+  getFormattedRange(rangeRef) {
+    return this.sheet.mapRange(
+      rangeRef,
+      this.getFormattedCell.bind(this)
+    );
+  }
+
+  /**
+   * Given an A1 reference, return the formatted value of the corresponding cell.
+   **/
+  getFormattedCell(cellRef) {
+    const val = this._getCellValue(cellRef);
+    const cell = this.sheet.getCell(cellRef);
+    const format = cell.get('format');
+
+    return format.format(val);
   }
 
   /**

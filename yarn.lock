@@ -849,6 +849,12 @@ form-data@~2.1.1:
     jStat "^1.7.0"
     numbro "^1.11.0"
 
+frac@~1.1.0:
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/frac/-/frac-1.1.1.tgz#5f7f5c2ae029167d90153eea4b7dd2958d43d1f5"
+  dependencies:
+    voc "~1.0.0"
+
 fs-readdir-recursive@^1.0.0:
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/fs-readdir-recursive/-/fs-readdir-recursive-1.1.0.tgz#e32fc030a2ccee44a6b5371308da54be0b397d27"
@@ -1263,6 +1269,10 @@ mocha@^5.0.0:
     mkdirp "0.5.1"
     supports-color "4.4.0"
 
+moment@^2.20.1:
+  version "2.20.1"
+  resolved "https://registry.yarnpkg.com/moment/-/moment-2.20.1.tgz#d6eb1a46cbcc14a2b2f9434112c1ff8907f313fd"
+
 ms@2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/ms/-/ms-2.0.0.tgz#5608aeadfc00be6c2901df5f9861788de0d597c8"
@@ -1553,6 +1563,15 @@ set-immediate-shim@^1.0.1:
     hot-formula-parser "https://github.com/abrgr/formula-parser.git#68eae50d58306de2c9d92b75533d704b3e23519a"
     immutable "^3.8.2"
 
+"sheety-model@https://github.com/abrgr/sheety-model.git#699b18b3303c3f7619e4eb663203bbd9a0e0cc95":
+  version "1.0.0"
+  resolved "https://github.com/abrgr/sheety-model.git#699b18b3303c3f7619e4eb663203bbd9a0e0cc95"
+  dependencies:
+    hot-formula-parser "https://github.com/abrgr/formula-parser.git#68eae50d58306de2c9d92b75533d704b3e23519a"
+    immutable "^3.8.2"
+    moment "^2.20.1"
+    ssf "^0.10.1"
+
 signal-exit@^3.0.0:
   version "3.0.2"
   resolved "https://registry.yarnpkg.com/signal-exit/-/signal-exit-3.0.2.tgz#b5fdc08f1287ea1178628e415e25132b73646c6d"
@@ -1576,6 +1595,12 @@ source-map-support@^0.4.15:
 source-map@^0.5.6:
   version "0.5.7"
   resolved "https://registry.yarnpkg.com/source-map/-/source-map-0.5.7.tgz#8a039d2d1021d22d1ea14c80d8ea468ba2ef3fcc"
+
+ssf@^0.10.1:
+  version "0.10.1"
+  resolved "https://registry.yarnpkg.com/ssf/-/ssf-0.10.1.tgz#f23d82b63792ef56089089c1cd0c848e911cdba6"
+  dependencies:
+    frac "~1.1.0"
 
 sshpk@^1.7.0:
   version "1.13.1"
@@ -1712,7 +1737,7 @@ verror@1.10.0:
     core-util-is "1.0.2"
     extsprintf "^1.2.0"
 
-voc@:
+voc@, voc@~1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/voc/-/voc-1.0.0.tgz#5465c0ce11d0881f7d8e36d8ca587043f33a25ae"
 
