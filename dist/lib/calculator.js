@@ -38,14 +38,28 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
+// Used as a sentinel to indicate in-progress async calcs
+var LOADING = {};
+
 var Calculator = function () {
+  /**
+   * extraFormulaFuncs is a mapping from function names to functions
+   * that will be accessible from formulas.  The functions take a params
+   * array and a cell reference.
+   *
+   * userUpdateFuncs is a mapping from function names to functions
+   * that will be invoked whenever a value is set for a cell with a formula
+   * utilizing the corresponding function.
+   **/
   function Calculator(sheet) {
-    var extraFuncs = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+    var extraFormulaFuncs = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+    var userUpdateFuncs = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
 
     _classCallCheck(this, Calculator);
 
     this.sheet = sheet;
-    this.parser = this._makeParser(extraFuncs);
+    this.parser = this._makeParser(extraFormulaFuncs);
+    this.userUpdateFuncs = userUpdateFuncs;
 
     var tabs = sheet.tabsById.valueSeq();
     // Map from dependent to dependency cells
@@ -58,6 +72,8 @@ var Calculator = function () {
     }));
     // Map from CellRef c to the pre-calculated value of a formula.  Primarily useful for async funcs.
     this.cellValueCache = new _immutable.Map();
+    // Map from CellRef c to the user-supplied value if c contains a formula making use of a userUpdateFunc.
+    this.userValueCache = new _immutable.Map();
 
     this.calculateAll();
   }
@@ -87,13 +103,33 @@ var Calculator = function () {
       valuesByCellRef.forEach(function (value, cellRef) {
         var cell = _this.sheet.getCell(cellRef);
         if (!cell.get('isUserEditable')) {
-          // TODO
+          // TODO: should we throw here?  refuse to update?
         }
 
         _this._setCellValue(cellRef, value);
+
+        // here, we handle user value functions in formulas
+        if (_this._hasUserValueFunc(cell)) {
+          _this.userValueCache = _this.userValueCache.set(cellRef, value);
+          _this.evaluateFormula(cell.get('formula'), cellRef);
+        }
       });
 
       return this._evalDependents(new _immutable.Set(valuesByCellRef.keySeq()));
+    }
+  }, {
+    key: '_hasUserValueFunc',
+    value: function _hasUserValueFunc(cell) {
+      var formula = cell.get('formula');
+      if (!formula) {
+        return false;
+      }
+
+      var upperCaseFormula = formula.toUpperCase();
+
+      return Object.keys(this.userUpdateFuncs).some(function (f) {
+        return upperCaseFormula.startsWith(f.toUpperCase() + '(');
+      });
     }
 
     /**
@@ -274,7 +310,7 @@ var Calculator = function () {
     }
   }, {
     key: '_makeParser',
-    value: function _makeParser(extraFuncs) {
+    value: function _makeParser(extraFormulaFuncs) {
       var _this4 = this;
 
       var parser = new _hotFormulaParser.Parser();
@@ -303,12 +339,24 @@ var Calculator = function () {
         parser.setFunction(name, funcs[name]);
       });
 
-      Object.keys(extraFuncs).forEach(function (name) {
-        var func = extraFuncs[name];
+      Object.keys(extraFormulaFuncs).forEach(function (name) {
+        var func = extraFormulaFuncs[name];
         var wrapped = function wrapped(params) {
-          return func(params, parser.cellRef);
+          var cellRef = parser.cellRef;
+          var userValueHandler = _this4.userUpdateFuncs[name];
+          if (_this4.userValueCache.has(cellRef) && userValueHandler) {
+            var userValue = _this4.userValueCache.get(cellRef);
+            var consumed = userValueHandler(params, cellRef, userValue);
+            if (consumed) {
+              _this4.userValueCache = _this4.userValueCache.remove(cellRef);
+            }
+
+            return userValue;
+          }
+
+          return func(params, cellRef);
         };
-        parser.setFunction(name, wrapped);
+        parser.setFunction(name.toUpperCase(), wrapped);
       });
 
       return parser;
@@ -320,6 +368,8 @@ var Calculator = function () {
 
 exports.default = Calculator;
 
+
+Calculator.LOADING = LOADING;
 
 function withAssociatedParserData(associatedData, parser, fn) {
   Object.keys(associatedData).forEach(function (k) {

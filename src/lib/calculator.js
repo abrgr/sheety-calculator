@@ -7,10 +7,23 @@ import deps from './deps';
 import depsToProvides from './deps-to-provides';
 import * as funcs from './sheet-funcs';
 
+// Used as a sentinel to indicate in-progress async calcs
+const LOADING = {};
+
 export default class Calculator {
-  constructor(sheet, extraFuncs = {}) {
+  /**
+   * extraFormulaFuncs is a mapping from function names to functions
+   * that will be accessible from formulas.  The functions take a params
+   * array and a cell reference.
+   *
+   * userUpdateFuncs is a mapping from function names to functions
+   * that will be invoked whenever a value is set for a cell with a formula
+   * utilizing the corresponding function.
+   **/
+  constructor(sheet, extraFormulaFuncs = {}, userUpdateFuncs = {}) {
     this.sheet = sheet;
-    this.parser = this._makeParser(extraFuncs);
+    this.parser = this._makeParser(extraFormulaFuncs);
+    this.userUpdateFuncs = userUpdateFuncs;
 
     const tabs = sheet.tabsById.valueSeq();
     // Map from dependent to dependency cells
@@ -21,6 +34,8 @@ export default class Calculator {
     this.vals = new Map(tabs.map(t => [t.get('id'), new List()]));
     // Map from CellRef c to the pre-calculated value of a formula.  Primarily useful for async funcs.
     this.cellValueCache = new Map();
+    // Map from CellRef c to the user-supplied value if c contains a formula making use of a userUpdateFunc.
+    this.userValueCache = new Map();
 
     this.calculateAll();
   }
@@ -41,13 +56,31 @@ export default class Calculator {
     valuesByCellRef.forEach((value, cellRef) => {
       const cell = this.sheet.getCell(cellRef);
       if ( !cell.get('isUserEditable') ) {
-        // TODO
+        // TODO: should we throw here?  refuse to update?
       }
 
       this._setCellValue(cellRef, value);
+
+      // here, we handle user value functions in formulas
+      if ( this._hasUserValueFunc(cell) ) {
+        this.userValueCache = this.userValueCache.set(cellRef, value);
+        this.evaluateFormula(cell.get('formula'), cellRef);
+      }
     });
 
     return this._evalDependents(new Set(valuesByCellRef.keySeq()));
+  }
+
+  _hasUserValueFunc(cell) {
+    const formula = cell.get('formula');
+    if ( !formula ) {
+      return false;
+    }
+
+    const upperCaseFormula = formula.toUpperCase();
+
+    return Object.keys(this.userUpdateFuncs)
+                 .some(f => upperCaseFormula.startsWith(f.toUpperCase() + '('));
   }
 
   /**
@@ -199,7 +232,7 @@ export default class Calculator {
     return tab.getIn([cellRef.get('rowIdx'), cellRef.get('colIdx')]);
   }
 
-  _makeParser(extraFuncs) {
+  _makeParser(extraFormulaFuncs) {
     const parser = new Parser();
 
     parser.on('callCellValue', ({row, column, tab}, done) => {
@@ -228,17 +261,31 @@ export default class Calculator {
       parser.setFunction(name, funcs[name]);
     });
 
-    Object.keys(extraFuncs).forEach(name => {
-      const func = extraFuncs[name];
-      const wrapped = (params) => (
-        func(params, parser.cellRef)
-      );
-      parser.setFunction(name, wrapped);
+    Object.keys(extraFormulaFuncs).forEach(name => {
+      const func = extraFormulaFuncs[name];
+      const wrapped = (params) => {
+        const cellRef = parser.cellRef;
+        const userValueHandler = this.userUpdateFuncs[name];
+        if ( this.userValueCache.has(cellRef) && userValueHandler ) {
+          const userValue = this.userValueCache.get(cellRef);
+          const consumed = userValueHandler(params, cellRef, userValue);
+          if ( consumed ) {
+            this.userValueCache = this.userValueCache.remove(cellRef);
+          }
+
+          return userValue;
+        }
+
+        return func(params, cellRef)
+      };
+      parser.setFunction(name.toUpperCase(), wrapped);
     });
 
     return parser;
   }
 }
+
+Calculator.LOADING = LOADING;
 
 function withAssociatedParserData(associatedData, parser, fn) {
   Object.keys(associatedData).forEach(k => {

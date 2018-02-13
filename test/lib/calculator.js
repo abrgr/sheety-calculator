@@ -85,12 +85,12 @@ describe('Calculator', () => {
 
           finalCheck();
         });
-        return 'Loading...';
+        return Calculator.LOADING;
       };
 
       const calc = new Calculator(new Sheet({ tabs }), { ASYNC_SUM });
 
-      assert.equal(calc.vals.getIn(['tab-2', 0, 0]), 'Loading...');
+      assert.equal(calc.vals.getIn(['tab-2', 0, 0]), Calculator.LOADING);
       const finalCheck = () => {
         assert.equal(calc.vals.getIn(['tab-2', 0, 0]), 20);
         assert.equal(calc.vals.getIn(['tab-2', 1, 0]), 24);
