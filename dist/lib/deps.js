@@ -53,12 +53,12 @@ function getDependencyParser() {
         colIdx: endCellCoord.column.index
       }
     });
-    var dependentRows = range.map(function (cellRef) {
+    var dependentRows = range.mapCellRefs(function (cellRef) {
       return cellRef.set('tabId', cellRef.get('tabId') || tab);
     });
 
-    dependentCells = dependentRows.reduce(function (_, row) {
-      return dependentCells.concat(new _immutable.List(row));
+    dependentCells = dependentRows.reduce(function (cells, row) {
+      return cells.concat(new _immutable.List(row));
     }, dependentCells);
 
     return [[]];

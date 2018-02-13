@@ -1,4 +1,4 @@
-import { Map, List } from 'immutable';
+import { Set, Map, List } from 'immutable';
 import { Parser } from 'hot-formula-parser';
 import { CellRef, CellRefRange } from 'sheety-model';
 import evalOrder from './eval-order';
@@ -8,9 +8,9 @@ import depsToProvides from './deps-to-provides';
 import * as funcs from './sheet-funcs';
 
 export default class Calculator {
-  constructor(sheet) {
+  constructor(sheet, extraFuncs = {}) {
     this.sheet = sheet;
-    this.parser = this._makeParser();
+    this.parser = this._makeParser(extraFuncs);
 
     const tabs = sheet.tabsById.valueSeq();
     // Map from dependent to dependency cells
@@ -19,6 +19,8 @@ export default class Calculator {
     this.providesTo = depsToProvides(this.deps);
     // Map from tab id to a List of Lists (rows and cells in the row)
     this.vals = new Map(tabs.map(t => [t.get('id'), new List()]));
+    // Map from CellRef c to the pre-calculated value of a formula.  Primarily useful for async funcs.
+    this.cellValueCache = new Map();
 
     this.calculateAll();
   }
@@ -32,6 +34,9 @@ export default class Calculator {
     return this._processCalculations(evalOrder(this.deps, this._allCellRefs()));
   }
 
+  /**
+   * Sets the values of provided cells.
+   **/
   setValues(valuesByCellRef) {
     valuesByCellRef.forEach((value, cellRef) => {
       const cell = this.sheet.getCell(cellRef);
@@ -42,20 +47,36 @@ export default class Calculator {
       this._setCellValue(cellRef, value);
     });
 
+    return this._evalDependents(new Set(valuesByCellRef.keySeq()));
+  }
+
+  /**
+   * This is primarily useful for asynchronous sheet functions.
+   * After calculating their value, async functions can set a cached
+   * cell value.
+   **/
+  setCachedCellValue(cellRef, value) {
+    this.cellValueCache = this.cellValueCache.set(cellRef, value);
+    this._setCellValue(cellRef, value);
+    return this._evalDependents(Set.of(cellRef));
+  }
+
+  _evalDependents(cellRefs) {
     const toEval = partialEvalOrder(
       this.providesTo,
-      valuesByCellRef.keySeq()
-    ).skipWhile(r => valuesByCellRef.has(r)).toList()
+      cellRefs
+    ).skipWhile(r => cellRefs.includes(r)).toList()
 
     return this._processCalculations(toEval);
   }
 
   /**
-   * Evaluate the formula provided, using defaultTabId as the tab for any
-   * cell references without a tab.
+   * Evaluate the formula provided, using cellRef to resolve ambiguous
+   * references (those without a tab specified) and to resolve async functions.
    **/
-  evaluateFormula(formula, defaultTabId) {
-    return withDefaultTabId(defaultTabId, this.parser, () => {
+  evaluateFormula(formula, cellRef) {
+    const assocData = { cellRef };
+    return withAssociatedParserData(assocData, this.parser, () => {
       const formulaValue = this.parser.parse(formula);
       if ( formulaValue.error ) {
         // TODO
@@ -103,7 +124,7 @@ export default class Calculator {
    **/
   _processCalculations(order) {
     order.forEach((cellRef) => {
-      this._setCellValue(cellRef, this._calculateCellValue(cellRef));
+      this._setCellValue(cellRef, this._calculateCellValue(cellRef, true));
     });
 
     return this.vals;
@@ -118,13 +139,22 @@ export default class Calculator {
 
   /**
    * Calculates the value of the cell at the given ref.
+   * If skipCache is not set, we will prefer pre-calculated values for any
+   * formulas that provided them.
+   * If skipCache is set, we will always re-calculate formulas.
    **/
-  _calculateCellValue(cellRef) {
+  _calculateCellValue(cellRef, skipCache) {
     const cell = this.sheet.getCell(cellRef);
 
     const formula = cell.get('formula');
     if ( formula ) {
-      return this.evaluateFormula(formula, cellRef.get('tabId'));
+      const cachedValue = this.cellValueCache.get(cellRef);
+      if ( !skipCache && !!cachedValue ) {
+        return cachedValue;
+      }
+
+      this.cellValueCache = this.cellValueCache.remove(cellRef);
+      return this.evaluateFormula(formula, cellRef);
     }
 
     const staticValue = cell.get('staticValue');
@@ -169,17 +199,19 @@ export default class Calculator {
     return tab.getIn([cellRef.get('rowIdx'), cellRef.get('colIdx')]);
   }
 
-  _makeParser() {
+  _makeParser(extraFuncs) {
     const parser = new Parser();
 
     parser.on('callCellValue', ({row, column, tab}, done) => {
-      const tabId = tab || parser.defaultTabId;
+      const defaultTabId = parser.cellRef && parser.cellRef.get('tabId');
+      const tabId = tab || defaultTabId;
       const cellRef = CellRef.of(this.sheet.getTab(tabId), row.index, column.index);
       done(this._getCellValue(cellRef));
     });
 
     parser.on('callRangeValue', (startCellCoord, endCellCoord, explicitTabId, done) => {
-      const tabId = explicitTabId || parser.defaultTabId;
+      const defaultTabId = parser.cellRef && parser.cellRef.get('tabId');
+      const tabId = explicitTabId || defaultTabId;
       const tab = this.sheet.getTab(tabId);
       const rangeRef = CellRefRange.of(
         tab,
@@ -196,13 +228,25 @@ export default class Calculator {
       parser.setFunction(name, funcs[name]);
     });
 
+    Object.keys(extraFuncs).forEach(name => {
+      const func = extraFuncs[name];
+      const wrapped = (params) => (
+        func(params, parser.cellRef)
+      );
+      parser.setFunction(name, wrapped);
+    });
+
     return parser;
   }
 }
 
-function withDefaultTabId(defaultTabId, parser, fn) {
-  parser.defaultTabId = defaultTabId;
+function withAssociatedParserData(associatedData, parser, fn) {
+  Object.keys(associatedData).forEach(k => {
+    parser[k] = associatedData[k];
+  });
   const result = fn();
-  parser.defaultTabId = null;
+  Object.keys(associatedData).forEach(k => {
+    parser[k] = null;
+  });
   return result;
 }

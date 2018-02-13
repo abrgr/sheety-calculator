@@ -52,6 +52,52 @@ describe('Calculator', () => {
       assert.equal(calc.vals.getIn(['tab-2', 0, 0]), 4);
     });
   });
+
+  describe('async functions', () => {
+    it('should work', (done) => {
+      const tabs = List.of(
+        new Tab({
+          id: 'my-tab',
+          rows: List.of(
+            List.of(new Cell({ staticValue: "a" }), new Cell({ staticValue: 2 })),
+            List.of(new Cell({ staticValue: "b" }), new Cell({ staticValue: 3 })),
+            List.of(new Cell({ staticValue: "c" }), new Cell({ staticValue: 4 })),
+            List.of(new Cell({ staticValue: "d" }), new Cell({ staticValue: 5 })),
+            List.of(new Cell({ staticValue: "e" }), new Cell({ staticValue: 6 }))
+          )
+        }), new Tab ({
+          id: 'tab-2',
+          rows: List.of(
+            List.of(new Cell({ formula: "ASYNC_SUM('my-tab'!B1:B5)" })),
+            List.of(new Cell({ formula: "A1+4" }))
+          )
+        })
+      );
+
+      const ASYNC_SUM = (vals, cellRef) => {
+        process.nextTick(() => {
+          const sum = vals.reduce((sum, row) => (
+            row.reduce((sum, v) => (
+              sum + parseInt(v)
+            ), sum)
+          ), 0);
+          calc.setCachedCellValue(cellRef, sum);
+
+          finalCheck();
+        });
+        return 'Loading...';
+      };
+
+      const calc = new Calculator(new Sheet({ tabs }), { ASYNC_SUM });
+
+      assert.equal(calc.vals.getIn(['tab-2', 0, 0]), 'Loading...');
+      const finalCheck = () => {
+        assert.equal(calc.vals.getIn(['tab-2', 0, 0]), 20);
+        assert.equal(calc.vals.getIn(['tab-2', 1, 0]), 24);
+        done();
+      };
+    });
+  });
 });
 
 function tabFactory(t, rows, cols) {

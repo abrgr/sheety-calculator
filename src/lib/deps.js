@@ -48,13 +48,13 @@ function getDependencyParser() {
         colIdx: endCellCoord.column.index
       }
     });
-    const dependentRows = range.map(cellRef => (
+    const dependentRows = range.mapCellRefs(cellRef => (
       cellRef.set('tabId', cellRef.get('tabId') || tab)
     ));
 
-    dependentCells = dependentRows.reduce((_, row) => (
-      dependentCells.concat(new List(row))
-    ), dependentCells);
+    dependentCells = dependentRows.reduce((cells, row) => {
+      return cells.concat(new List(row))
+    }, dependentCells);
 
     return [[]];
   });

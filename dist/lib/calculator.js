@@ -40,10 +40,12 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 var Calculator = function () {
   function Calculator(sheet) {
+    var extraFuncs = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
     _classCallCheck(this, Calculator);
 
     this.sheet = sheet;
-    this.parser = this._makeParser();
+    this.parser = this._makeParser(extraFuncs);
 
     var tabs = sheet.tabsById.valueSeq();
     // Map from dependent to dependency cells
@@ -54,6 +56,8 @@ var Calculator = function () {
     this.vals = new _immutable.Map(tabs.map(function (t) {
       return [t.get('id'), new _immutable.List()];
     }));
+    // Map from CellRef c to the pre-calculated value of a formula.  Primarily useful for async funcs.
+    this.cellValueCache = new _immutable.Map();
 
     this.calculateAll();
   }
@@ -70,6 +74,11 @@ var Calculator = function () {
     value: function calculateAll() {
       return this._processCalculations((0, _evalOrder2.default)(this.deps, this._allCellRefs()));
     }
+
+    /**
+     * Sets the values of provided cells.
+     **/
+
   }, {
     key: 'setValues',
     value: function setValues(valuesByCellRef) {
@@ -84,24 +93,44 @@ var Calculator = function () {
         _this._setCellValue(cellRef, value);
       });
 
-      var toEval = (0, _partialEvalOrder2.default)(this.providesTo, valuesByCellRef.keySeq()).skipWhile(function (r) {
-        return valuesByCellRef.has(r);
+      return this._evalDependents(new _immutable.Set(valuesByCellRef.keySeq()));
+    }
+
+    /**
+     * This is primarily useful for asynchronous sheet functions.
+     * After calculating their value, async functions can set a cached
+     * cell value.
+     **/
+
+  }, {
+    key: 'setCachedCellValue',
+    value: function setCachedCellValue(cellRef, value) {
+      this.cellValueCache = this.cellValueCache.set(cellRef, value);
+      this._setCellValue(cellRef, value);
+      return this._evalDependents(_immutable.Set.of(cellRef));
+    }
+  }, {
+    key: '_evalDependents',
+    value: function _evalDependents(cellRefs) {
+      var toEval = (0, _partialEvalOrder2.default)(this.providesTo, cellRefs).skipWhile(function (r) {
+        return cellRefs.includes(r);
       }).toList();
 
       return this._processCalculations(toEval);
     }
 
     /**
-     * Evaluate the formula provided, using defaultTabId as the tab for any
-     * cell references without a tab.
+     * Evaluate the formula provided, using cellRef to resolve ambiguous
+     * references (those without a tab specified) and to resolve async functions.
      **/
 
   }, {
     key: 'evaluateFormula',
-    value: function evaluateFormula(formula, defaultTabId) {
+    value: function evaluateFormula(formula, cellRef) {
       var _this2 = this;
 
-      return withDefaultTabId(defaultTabId, this.parser, function () {
+      var assocData = { cellRef: cellRef };
+      return withAssociatedParserData(assocData, this.parser, function () {
         var formulaValue = _this2.parser.parse(formula);
         if (formulaValue.error) {
           // TODO
@@ -157,7 +186,7 @@ var Calculator = function () {
       var _this3 = this;
 
       order.forEach(function (cellRef) {
-        _this3._setCellValue(cellRef, _this3._calculateCellValue(cellRef));
+        _this3._setCellValue(cellRef, _this3._calculateCellValue(cellRef, true));
       });
 
       return this.vals;
@@ -175,16 +204,25 @@ var Calculator = function () {
 
     /**
      * Calculates the value of the cell at the given ref.
+     * If skipCache is not set, we will prefer pre-calculated values for any
+     * formulas that provided them.
+     * If skipCache is set, we will always re-calculate formulas.
      **/
 
   }, {
     key: '_calculateCellValue',
-    value: function _calculateCellValue(cellRef) {
+    value: function _calculateCellValue(cellRef, skipCache) {
       var cell = this.sheet.getCell(cellRef);
 
       var formula = cell.get('formula');
       if (formula) {
-        return this.evaluateFormula(formula, cellRef.get('tabId'));
+        var cachedValue = this.cellValueCache.get(cellRef);
+        if (!skipCache && !!cachedValue) {
+          return cachedValue;
+        }
+
+        this.cellValueCache = this.cellValueCache.remove(cellRef);
+        return this.evaluateFormula(formula, cellRef);
       }
 
       var staticValue = cell.get('staticValue');
@@ -236,7 +274,7 @@ var Calculator = function () {
     }
   }, {
     key: '_makeParser',
-    value: function _makeParser() {
+    value: function _makeParser(extraFuncs) {
       var _this4 = this;
 
       var parser = new _hotFormulaParser.Parser();
@@ -246,13 +284,15 @@ var Calculator = function () {
             column = _ref.column,
             tab = _ref.tab;
 
-        var tabId = tab || parser.defaultTabId;
+        var defaultTabId = parser.cellRef && parser.cellRef.get('tabId');
+        var tabId = tab || defaultTabId;
         var cellRef = _sheetyModel.CellRef.of(_this4.sheet.getTab(tabId), row.index, column.index);
         done(_this4._getCellValue(cellRef));
       });
 
       parser.on('callRangeValue', function (startCellCoord, endCellCoord, explicitTabId, done) {
-        var tabId = explicitTabId || parser.defaultTabId;
+        var defaultTabId = parser.cellRef && parser.cellRef.get('tabId');
+        var tabId = explicitTabId || defaultTabId;
         var tab = _this4.sheet.getTab(tabId);
         var rangeRef = _sheetyModel.CellRefRange.of(tab, startCellCoord.row.index, startCellCoord.column.index, endCellCoord.row.index, endCellCoord.column.index);
         var range = _this4.getRange(rangeRef);
@@ -261,6 +301,14 @@ var Calculator = function () {
 
       Object.keys(funcs).forEach(function (name) {
         parser.setFunction(name, funcs[name]);
+      });
+
+      Object.keys(extraFuncs).forEach(function (name) {
+        var func = extraFuncs[name];
+        var wrapped = function wrapped(params) {
+          return func(params, parser.cellRef);
+        };
+        parser.setFunction(name, wrapped);
       });
 
       return parser;
@@ -273,10 +321,14 @@ var Calculator = function () {
 exports.default = Calculator;
 
 
-function withDefaultTabId(defaultTabId, parser, fn) {
-  parser.defaultTabId = defaultTabId;
+function withAssociatedParserData(associatedData, parser, fn) {
+  Object.keys(associatedData).forEach(function (k) {
+    parser[k] = associatedData[k];
+  });
   var result = fn();
-  parser.defaultTabId = null;
+  Object.keys(associatedData).forEach(function (k) {
+    parser[k] = null;
+  });
   return result;
 }
 //# sourceMappingURL=calculator.js.map
