@@ -35,15 +35,15 @@ function getDependencyParser() {
     );
     done(0); // we don't care about the value
   });
-  parser.on('callRangeValue', (startCellCoord, endCellCoord, done) => {
+  parser.on('callRangeValue', (startCellCoord, endCellCoord, rangeTab, done) => {
     const range = new CellRefRange({
       start: {
-        tabId: startCellCoord.tab || tab,
+        tabId: rangeTab || tab,
         rowIdx: startCellCoord.row.index,
         colIdx: startCellCoord.column.index
       },
       end: {
-        tabId: startCellCoord.tab || tab,
+        tabId: rangeTab || tab,
         rowIdx: endCellCoord.row.index,
         colIdx: endCellCoord.column.index
       }
