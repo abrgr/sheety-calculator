@@ -1009,13 +1009,6 @@ home-or-tmp@^2.0.0:
     os-homedir "^1.0.0"
     os-tmpdir "^1.0.1"
 
-"hot-formula-parser@https://github.com/abrgr/formula-parser.git#68eae50d58306de2c9d92b75533d704b3e23519a":
-  version "2.3.1"
-  resolved "https://github.com/abrgr/formula-parser.git#68eae50d58306de2c9d92b75533d704b3e23519a"
-  dependencies:
-    formulajs "github:handsontable/formula.js"
-    tiny-emitter "^2.0.1"
-
 "hot-formula-parser@https://github.com/abrgr/formula-parser.git#f937f3bb0ba510b6ff2cf2f73346f61fdc97df6e":
   version "2.3.1"
   resolved "https://github.com/abrgr/formula-parser.git#f937f3bb0ba510b6ff2cf2f73346f61fdc97df6e"
@@ -1563,18 +1556,18 @@ set-immediate-shim@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/set-immediate-shim/-/set-immediate-shim-1.0.1.tgz#4b2b1b27eb808a9f8dcc481a58e5e56f599f3f61"
 
-"sheety-model@https://github.com/abrgr/sheety-model.git#03eda14846d2c7b346e3b382c3f30c8cc4e5b0e8":
+"sheety-model@https://github.com/abrgr/sheety-model.git#0bee405e127ea8325d330818ffb03550cf5b89c5":
   version "1.0.0"
-  resolved "https://github.com/abrgr/sheety-model.git#03eda14846d2c7b346e3b382c3f30c8cc4e5b0e8"
+  resolved "https://github.com/abrgr/sheety-model.git#0bee405e127ea8325d330818ffb03550cf5b89c5"
   dependencies:
-    hot-formula-parser "https://github.com/abrgr/formula-parser.git#68eae50d58306de2c9d92b75533d704b3e23519a"
+    hot-formula-parser "https://github.com/abrgr/formula-parser.git#f937f3bb0ba510b6ff2cf2f73346f61fdc97df6e"
     immutable "^3.8.2"
     moment "^2.20.1"
     ssf "^0.10.1"
 
-"sheety-model@https://github.com/abrgr/sheety-model.git#0bee405e127ea8325d330818ffb03550cf5b89c5":
+"sheety-model@https://github.com/abrgr/sheety-model.git#9e39d24179704040476f05c8438d5ade50679aca":
   version "1.0.0"
-  resolved "https://github.com/abrgr/sheety-model.git#0bee405e127ea8325d330818ffb03550cf5b89c5"
+  resolved "https://github.com/abrgr/sheety-model.git#9e39d24179704040476f05c8438d5ade50679aca"
   dependencies:
     hot-formula-parser "https://github.com/abrgr/formula-parser.git#f937f3bb0ba510b6ff2cf2f73346f61fdc97df6e"
     immutable "^3.8.2"
