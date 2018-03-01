@@ -27,17 +27,18 @@ export default class Calculator {
 
     const tabs = sheet.tabsById.valueSeq();
     // Map from dependent to dependency cells
-    this.deps = deps(tabs);
+    const theDeps = deps(tabs);
     // Map from CellRef p to List of CellRefs r where p provides a value needed by each r.
-    this.providesTo = depsToProvides(this.deps);
+    this.providesTo = depsToProvides(theDeps);
     // Map from tab id to a List of Lists (rows and cells in the row)
     this.vals = new Map(tabs.map(t => [t.get('id'), new List()]));
     // Map from CellRef c to the pre-calculated value of a formula.  Primarily useful for async funcs.
     this.cellValueCache = new Map();
     // Map from CellRef c to the user-supplied value if c contains a formula making use of a userUpdateFunc.
     this.userValueCache = new Map();
+    this.globalOrder = evalOrder(theDeps, this._allCellRefs());
 
-    this.calculateAll();
+    this.calculateAll(this.globalOrder);
   }
 
   /**
@@ -45,8 +46,8 @@ export default class Calculator {
    *
    * Returns a map from tab ids to a List of Lists of values.
    **/
-  calculateAll() {
-    return this._processCalculations(evalOrder(this.deps, this._allCellRefs()));
+  calculateAll(globalOrder) {
+    return this._processCalculations(globalOrder);
   }
 
   /**
@@ -97,6 +98,7 @@ export default class Calculator {
   _evalDependents(cellRefs) {
     const toEval = partialEvalOrder(
       this.providesTo,
+      this.globalOrder,
       cellRefs
     ).skipWhile(r => cellRefs.includes(r)).toList()
 

@@ -63,9 +63,9 @@ var Calculator = function () {
 
     var tabs = sheet.tabsById.valueSeq();
     // Map from dependent to dependency cells
-    this.deps = (0, _deps2.default)(tabs);
+    var theDeps = (0, _deps2.default)(tabs);
     // Map from CellRef p to List of CellRefs r where p provides a value needed by each r.
-    this.providesTo = (0, _depsToProvides2.default)(this.deps);
+    this.providesTo = (0, _depsToProvides2.default)(theDeps);
     // Map from tab id to a List of Lists (rows and cells in the row)
     this.vals = new _immutable.Map(tabs.map(function (t) {
       return [t.get('id'), new _immutable.List()];
@@ -74,8 +74,9 @@ var Calculator = function () {
     this.cellValueCache = new _immutable.Map();
     // Map from CellRef c to the user-supplied value if c contains a formula making use of a userUpdateFunc.
     this.userValueCache = new _immutable.Map();
+    this.globalOrder = (0, _evalOrder2.default)(theDeps, this._allCellRefs());
 
-    this.calculateAll();
+    this.calculateAll(this.globalOrder);
   }
 
   /**
@@ -87,8 +88,8 @@ var Calculator = function () {
 
   _createClass(Calculator, [{
     key: 'calculateAll',
-    value: function calculateAll() {
-      return this._processCalculations((0, _evalOrder2.default)(this.deps, this._allCellRefs()));
+    value: function calculateAll(globalOrder) {
+      return this._processCalculations(globalOrder);
     }
 
     /**
@@ -148,7 +149,7 @@ var Calculator = function () {
   }, {
     key: '_evalDependents',
     value: function _evalDependents(cellRefs) {
-      var toEval = (0, _partialEvalOrder2.default)(this.providesTo, cellRefs).skipWhile(function (r) {
+      var toEval = (0, _partialEvalOrder2.default)(this.providesTo, this.globalOrder, cellRefs).skipWhile(function (r) {
         return cellRefs.includes(r);
       }).toList();
 
