@@ -1,6 +1,6 @@
 import { Set, Map, List } from 'immutable';
 import { Parser } from 'hot-formula-parser';
-import { CellRef, CellRefRange } from 'sheety-model';
+import { Sheet, CellRef, CellRefRange } from 'sheety-model';
 import evalOrder from './eval-order';
 import partialEvalOrder from './partial-eval-order';
 import deps from './deps';
@@ -21,11 +21,11 @@ export default class Calculator {
    * utilizing the corresponding function.
    **/
   constructor(sheet, extraFormulaFuncs = {}, userUpdateFuncs = {}) {
-    this.sheet = sheet;
+    this.sheet = new Sheet(sheet);
     this.parser = this._makeParser(extraFormulaFuncs);
     this.userUpdateFuncs = userUpdateFuncs;
 
-    const tabs = sheet.tabsById.valueSeq();
+    const tabs = this.sheet.get('tabsById').valueSeq();
     // Map from dependent to dependency cells
     const theDeps = deps(tabs);
     // Map from CellRef p to List of CellRefs r where p provides a value needed by each r.

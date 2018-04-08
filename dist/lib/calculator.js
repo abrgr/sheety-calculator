@@ -57,11 +57,11 @@ var Calculator = function () {
 
     _classCallCheck(this, Calculator);
 
-    this.sheet = sheet;
+    this.sheet = new _sheetyModel.Sheet(sheet);
     this.parser = this._makeParser(extraFormulaFuncs);
     this.userUpdateFuncs = userUpdateFuncs;
 
-    var tabs = sheet.tabsById.valueSeq();
+    var tabs = this.sheet.get('tabsById').valueSeq();
     // Map from dependent to dependency cells
     var theDeps = (0, _deps2.default)(tabs);
     // Map from CellRef p to List of CellRefs r where p provides a value needed by each r.
